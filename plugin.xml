@@ -17,17 +17,17 @@
 -->
 
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
-           id="com.estimote.ios-sdj"
+           id="com.venturecranial.cordova.estimote"
       version="0.0.1">
 
     <name>Estimote SDK</name>
     <description>Cordova Estimote SDK Plugin</description>
     <license>MIT</license>
-    <keywords>cordova,device,motion,estimote,beacon</keywords>
+    <keywords>cordova,device,motion,estimote,beacon,ibeacon</keywords>
     <repo>https://github.com/VentureCranial/estimote-cordova.git</repo>
     <issue>https://github.com/VentureCranial/estimote-cordova/issues</issue>
 
-    <js-module src="www/estimote.js"     name="EstimoteAPI">
+    <js-module src="www/estimote.js" name="EstimoteAPI">
         <clobbers target="EstimoteAPI" />
     </js-module>
 
@@ -40,7 +40,6 @@
             </feature>
         </config-file>
 
-qq
         <header-file src="src/ios/CDVEstimote.h" />
         <source-file src="src/ios/CDVEstimote.m" />
 
