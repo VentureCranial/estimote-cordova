@@ -1,51 +1,43 @@
 <!---
-    Licensed to the Apache Software Foundation (ASF) under one
-    or more contributor license agreements.  See the NOTICE file
-    distributed with this work for additional information
-    regarding copyright ownership.  The ASF licenses this file
-    to you under the Apache License, Version 2.0 (the
-    "License"); you may not use this file except in compliance
-    with the License.  You may obtain a copy of the License at
+     Copyright 2014 Venture Cranial, LLC
 
-      http://www.apache.org/licenses/LICENSE-2.0
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
 
-    Unless required by applicable law or agreed to in writing,
-    software distributed under the License is distributed on an
-    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-    KIND, either express or implied.  See the License for the
-    specific language governing permissions and limitations
-    under the License.
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
 -->
 
-# org.apache.cordova.device-motion
+# com.venturecranial.cordova.estimote
 
-This plugin provides access to the device's accelerometer. The accelerometer is
-a motion sensor that detects the change (_delta_) in movement relative to the
-current device orientation, in three dimensions along the _x_, _y_, and _z_
-axis.
+This plugin provides access to the Estimote iOS SDK. Estimotes are
+Bluetooth LE beacons which provide location, temperature, and motion
+information in a manner which is compatible with Apple's iBeacon and
+CoreLocation standards.
 
 ## Installation
 
-    cordova plugin add org.apache.cordova.device-motion
+    cordova plugin add com.venturecranial.cordova.estimote
 
 ## Supported Platforms
 
-- Amazon Fire OS
-- Android
-- BlackBerry 10
-- Firefox OS
 - iOS
-- Tizen
-- Windows Phone 7 and 8
-- Windows 8
 
 ## Methods
 
-- navigator.accelerometer.getCurrentAcceleration
-- navigator.accelerometer.watchAcceleration
-- navigator.accelerometer.clearWatch
+- navigator.estimote.getCurrentAcceleration
+- navigator.estimote.watchAcceleration
+- navigator.estimote.clearWatch
 
 ## Objects
+
+##TBD
 
 - Acceleration
 
