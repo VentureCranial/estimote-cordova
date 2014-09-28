@@ -41,8 +41,17 @@
         </config-file>
 
         <header-file src="src/ios/CDVEstimote.h" />
+        <header-file src="src/ios/EstimoteSDK/CDVFoo.h" />
+        <header-file src="src/ios/EstimoteSDK/ESTBeacon.h" />
+        <header-file src="src/ios/EstimoteSDK/ESTBeaconDefinitions.h" />
+        <header-file src="src/ios/EstimoteSDK/ESTBeaconFirmwareInfoVO.h" />
+        <header-file src="src/ios/EstimoteSDK/ESTBeaconFirmwareVO.h" />
+        <header-file src="src/ios/EstimoteSDK/ESTBeaconManager.h" />
+        <header-file src="src/ios/EstimoteSDK/ESTBeaconRegion.h" />
+        <header-file src="src/ios/EstimoteSDK/ESTBeaconVO.h" />
+
         <source-file src="src/ios/CDVEstimote.m" />
 
-        <framework src="EstimoteSDK.framework" />
+        <source-file src="src/ios/EstimoteSDK/libEstimoteSDK.a" framework="true" />
     </platform>
 </plugin>
