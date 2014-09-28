@@ -21,8 +21,7 @@
  */
 var argscheck = require('cordova/argscheck'),
     utils = require("cordova/utils"),
-    exec = require("cordova/exec"),
-    EstimoteAPI = require('./EstimoteAPI');
+    exec = require("cordova/exec");
 
 //  Is the API currently running?
 var running = false;
@@ -49,13 +48,13 @@ function start() {
         for (var i = 0, l = tempListeners.length; i < l; i++) {
             tempListeners[i].fail(e);
         }
-    }, "EstimoteAPI", "start", []);
+    }, "Estimote", "start", []);
     running = true;
 }
 
 // Tells native to stop.
 function stop() {
-    exec(null, null, "EstimoteAPI", "stop", []);
+    exec(null, null, "Estimote", "stop", []);
     running = false;
 }
 
@@ -75,14 +74,15 @@ function removeListeners(l) {
     }
 }
 
-var estimote = {
+var EstimoteAPI = {
     /**
-     * Asynchronously acquires the current acceleration.
+     * Asynchronously scan for Estimote beacons.
      *
-     * @param {Function} successCallback    The function to call when the acceleration data is available
-     * @param {Function} errorCallback      The function to call when there is an error getting the acceleration data. (OPTIONAL)
+     * @param {Function} successCallback    The function to call when the beacon list is available
+     * @param {Function} errorCallback      The function to call when there is an error getting the beacon list. (OPTIONAL)
      * @param {EstimoteOptions} options     The options for EstimoteAPI calls. (OPTIONAL)
      */
+
     rangeAllBeacons: function(successCallback, errorCallback, options) {
         argscheck.checkArgs('fFO', 'estimote.rangeAllBeacons', arguments);
 
@@ -107,17 +107,17 @@ var estimote = {
     /**
      * Asynchronously watches for beacons to enter range.
      *
-     * @param {Function} successCallback    The function to call each time the acceleration data is available
-     * @param {Function} errorCallback      The function to call when there is an error getting the acceleration data. (OPTIONAL)
+     * @param {Function} successCallback    The function to call each time beacon list updates
+     * @param {Function} errorCallback      The function to call when there is an error getting beacon list. (OPTIONAL)
      * @param {EstimoteOptions} options     The options for EstimoteAPI calls. (OPTIONAL)
      * @return String                       The watch id that must be passed to #clearWatch to stop watching.
      */
     startRangingBeacons: function(successCallback, errorCallback, options) {
-        argscheck.checkArgs('fFO', 'accelerometer.startRangingBeacons', arguments);
+        argscheck.checkArgs('fFO', 'estimote.startRangingBeacons', arguments);
         // Default interval (10 sec)
         var frequency = (options && options.frequency && typeof options.frequency == 'number') ? options.frequency : 10000;
 
-        // Keep reference to watch id, and report accel readings as often as defined in frequency
+        // Keep reference to watch id, and report readings as often as defined in frequency
         var id = utils.createUUID();
 
         var p = createCallbackPair(function(){}, function(e) {
@@ -129,7 +129,7 @@ var estimote = {
         timers[id] = {
             timer:window.setInterval(function() {
                 if (reply) {
-                    successCallback(accel);
+                    successCallback(reply);
                 }
             }, frequency),
             listeners:p
@@ -139,7 +139,7 @@ var estimote = {
             // If we're already running then immediately invoke the success callback
             // but only if we have retrieved a value, sample code does not check for null ...
             if (reply) {
-                successCallback(accel);
+                successCallback(reply);
             }
         } else {
             start();
@@ -162,4 +162,5 @@ var estimote = {
         }
     }
 };
-module.exports = estimote;
+
+module.exports = EstimoteAPI;

@@ -27,8 +27,8 @@
     <repo>https://github.com/VentureCranial/estimote-cordova.git</repo>
     <issue>https://github.com/VentureCranial/estimote-cordova/issues</issue>
 
-    <js-module src="www/estimote.js" name="EstimoteAPI">
-        <clobbers target="EstimoteAPI" />
+    <js-module src="www/estimote.js" name="Estimote">
+        <clobbers target="Estimote" />
     </js-module>
 
     <!-- ios -->
@@ -36,8 +36,12 @@
 
         <config-file target="config.xml" parent="/*">
             <feature name="Estimote">
-                <param name="ios-package" value="Estimote-iOS-SDK"/>
+                <param name="ios-package" value="CDVEstimote"/>
             </feature>
+        </config-file>
+
+        <config-file target="*-Info.plist" parent="NSLocationAlwaysUsageDescription">
+            <string></string>
         </config-file>
 
         <header-file src="src/ios/CDVEstimote.h" />

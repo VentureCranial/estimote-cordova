@@ -14,22 +14,22 @@
   limitations under the License.
  */
 
-#import <UIKit/UIKit.h>
 #import "ESTBeaconManager.h"
 #import <Cordova/CDVPlugin.h>
 
-@interface CDVEstimote : CDVPlugin
-{
-//     double x;
-//     double y;
-//     double z;
-//     NSTimeInterval timestamp;
+@interface CDVEstimote : CDVPlugin <ESTBeaconManagerDelegate> {
 }
 
-@property (readonly, assign) BOOL isRunning;
+@property (readwrite, assign) BOOL isRunning;
 @property (nonatomic, strong) NSString* callbackId;
 
+@property (readwrite, assign) BOOL haveReturnedResult;
+@property (readwrite, strong) ESTBeaconManager* beaconManager;
+@property (readwrite, strong) ESTBeaconRegion *region;
+@property (readwrite, strong) NSArray *beaconsArray;
+
 - (CDVEstimote *)init;
+- (CDVPlugin*)initWithWebView:(UIWebView*)theWebView;
 
 - (void)start:(CDVInvokedUrlCommand*)command;
 - (void)stop:(CDVInvokedUrlCommand*)command;

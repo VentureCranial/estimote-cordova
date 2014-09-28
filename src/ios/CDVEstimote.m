@@ -17,36 +17,36 @@
 
 #import "CDVEstimote.h"
 
-@interface CDVEstimote () <ESTBeaconManagerDelegate> {}
-@property (readwrite, assign) BOOL isRunning;
-@property (readwrite, assign) BOOL haveReturnedResult;
-@property (readwrite, strong) ESTBeaconManager* beaconManager;
-@property (readwrite, strong) ESTBeaconRegion *region;
-@property (readwrite, strong) NSArray *beaconsArray;
-@end
-
 @implementation CDVEstimote
 
 @synthesize callbackId, isRunning;
 
-// defaults to 10 msec
-#define kAccelerometerInterval 10
-// g constant: -9.81 m/s^2
-#define kGravitationalConstant -9.81
 
-- (CDVEstimote*)init {
-    self = [super init];
+- (CDVEstimote *)initWithWebView:(UIWebView*)theWebView {
+    self = (CDVEstimote*)[super initWithWebView:(UIWebView*)theWebView];
     if (self) {
+
         self.callbackId = nil;
+
+        self.beaconManager = [[ESTBeaconManager alloc] init];
+        self.beaconManager.delegate = self;
+        self.region = [[ESTBeaconRegion alloc] initWithProximityUUID:ESTIMOTE_PROXIMITY_UUID
+                                              identifier:@"EstimoteSampleRegion"];
+
         self.isRunning = NO;
-        self.haveReturnedResult = YES;
-        self.beaconManager = nil;
+        self.haveReturnedResult = NO;
     }
     return self;
 }
 
 - (void)dealloc {
     [self stop:nil];
+    self.beaconManager.delegate = nil;
+    self.region = nil;
+    self.haveReturnedResult = YES;
+    self.isRunning = NO;
+    self.callbackId = nil;
+    self.beaconManager = nil;
 }
 
 - (void)start:(CDVInvokedUrlCommand*)command {
@@ -54,15 +54,11 @@
     self.haveReturnedResult = NO;
     self.callbackId = command.callbackId;
 
-    if (!self.beaconManager) {
-        self.beaconManager = [[ESTBeaconManager alloc] init];
-        self.beaconManager.delegate = self;
-
-        self.region = [[ESTBeaconRegion alloc] initWithProximityUUID:ESTIMOTE_PROXIMITY_UUID
-                                              identifier:@"EstimoteSampleRegion"];
-
+    if (self.beaconManager) {
+        NSLog(@"Requesting estimote beacon authorization.");
         [self.beaconManager requestAlwaysAuthorization];
         [self startRangingBeacons];
+        self.isRunning = YES;
     }
 
     // if ([self.motionManager isAccelerometerAvailable] == YES) {
@@ -90,7 +86,7 @@
 }
 
 - (void)stop:(CDVInvokedUrlCommand*)command {
-    if (!self.beaconManager) {
+    if (self.beaconManager) {
         [self stopRangingBeacons];
     //     if (self.haveReturnedResult == NO){
     //         // block has not fired before stop was called, return whatever result we currently have
@@ -133,17 +129,25 @@
 
 -(void)startRangingBeacons {
 
+    NSLog(@"Starting to Range Beacons");
     if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusNotDetermined) {
+        NSLog(@"Requesting authorization");
         [self.beaconManager requestAlwaysAuthorization];
     }
     else if([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusAuthorized) {
+        NSLog(@"Starting startRangingBeaconsinRegion");
+
         [self.beaconManager startRangingBeaconsInRegion:self.region];
     }
     else if([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusDenied) {
         // FAILED to get authorization to follow location.
+                NSLog(@"Authorization denied");
+
     }
     else if([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusRestricted) {
         // FAILED to get authorization to follow location.
+                NSLog(@"Authorization restricted");
+
     }
 }
 
@@ -156,17 +160,24 @@
 
 
 - (void)beaconManager:(ESTBeaconManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
-    [self startRangingBeacons];
+    if (status == kCLAuthorizationStatusAuthorized) {
+        NSLog(@"Authorization status changed, starting to range beacons");
+        [self startRangingBeacons];
+    }
 }
 
 - (void)beaconManager:(ESTBeaconManager *)manager didRangeBeacons:(NSArray *)beacons inRegion:(ESTBeaconRegion *)region {
     self.beaconsArray = beacons;
+    NSLog(@"Updating becons array response");
+    [self returnBeaconList];
     // invoke callback if beacons changed
 }
 
 - (void)beaconManager:(ESTBeaconManager *)manager didDiscoverBeacons:(NSArray *)beacons inRegion:(ESTBeaconRegion *)region {
     self.beaconsArray = beacons;
-    // invoke callback if beacons changed
+    NSLog(@"Updating becons array response");
+    [self returnBeaconList];
+   // invoke callback if beacons changed
 }
 
 @end
