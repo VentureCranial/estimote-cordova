@@ -38,7 +38,7 @@ CoreLocation standards.
 ## Objects
 
 ##TBD
-
+../../RELEASENOTES.md
 - Acceleration
 
 ## navigator.accelerometer.getCurrentAcceleration

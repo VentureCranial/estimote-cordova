@@ -1,32 +1,31 @@
 /*
- Licensed to the Apache Software Foundation (ASF) under one
- or more contributor license agreements.  See the NOTICE file
- distributed with this work for additional information
- regarding copyright ownership.  The ASF licenses this file
- to you under the Apache License, Version 2.0 (the
- "License"); you may not use this file except in compliance
- with the License.  You may obtain a copy of the License at
+     Copyright 2014 Venture Cranial, LLC
 
- http://www.apache.org/licenses/LICENSE-2.0
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
 
- Unless required by applicable law or agreed to in writing,
- software distributed under the License is distributed on an
- "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- KIND, either express or implied.  See the License for the
- specific language governing permissions and limitations
- under the License.
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
  */
 
-#import <CoreMotion/CoreMotion.h>
-#import "CDVAccelerometer.h"
+#import "CDVEstimote.h"
 
-@interface CDVAccelerometer () {}
+@interface CDVEstimote () <ESTBeaconManagerDelegate> {}
 @property (readwrite, assign) BOOL isRunning;
 @property (readwrite, assign) BOOL haveReturnedResult;
-@property (readwrite, strong) CMMotionManager* motionManager;
+@property (readwrite, strong) ESTBeaconManager* beaconManager;
+@property (readwrite, strong) ESTBeaconRegion *region;
+@property (readwrite, strong) NSArray *beaconsArray;
 @end
 
-@implementation CDVAccelerometer
+@implementation CDVEstimote
 
 @synthesize callbackId, isRunning;
 
@@ -35,54 +34,54 @@
 // g constant: -9.81 m/s^2
 #define kGravitationalConstant -9.81
 
-- (CDVAccelerometer*)init
-{
+- (CDVEstimote*)init {
     self = [super init];
     if (self) {
-        x = 0;
-        y = 0;
-        z = 0;
-        timestamp = 0;
         self.callbackId = nil;
         self.isRunning = NO;
         self.haveReturnedResult = YES;
-        self.motionManager = nil;
+        self.beaconManager = nil;
     }
     return self;
 }
 
-- (void)dealloc
-{
+- (void)dealloc {
     [self stop:nil];
 }
 
-- (void)start:(CDVInvokedUrlCommand*)command
-{
+- (void)start:(CDVInvokedUrlCommand*)command {
+
     self.haveReturnedResult = NO;
     self.callbackId = command.callbackId;
 
-    if (!self.motionManager)
-    {
-        self.motionManager = [[CMMotionManager alloc] init];
+    if (!self.beaconManager) {
+        self.beaconManager = [[ESTBeaconManager alloc] init];
+        self.beaconManager.delegate = self;
+
+        self.region = [[ESTBeaconRegion alloc] initWithProximityUUID:ESTIMOTE_PROXIMITY_UUID
+                                              identifier:@"EstimoteSampleRegion"];
+
+        [self.beaconManager requestAlwaysAuthorization];
+        [self startRangingBeacons];
     }
 
-    if ([self.motionManager isAccelerometerAvailable] == YES) {
-        // Assign the update interval to the motion manager and start updates
-        [self.motionManager setAccelerometerUpdateInterval:kAccelerometerInterval/1000];  // expected in seconds
-        __weak CDVAccelerometer* weakSelf = self;
-        [self.motionManager startAccelerometerUpdatesToQueue:[NSOperationQueue mainQueue] withHandler:^(CMAccelerometerData *accelerometerData, NSError *error) {
-            x = accelerometerData.acceleration.x;
-            y = accelerometerData.acceleration.y;
-            z = accelerometerData.acceleration.z;
-            timestamp = ([[NSDate date] timeIntervalSince1970] * 1000);
-            [weakSelf returnAccelInfo];
-        }];
+    // if ([self.motionManager isAccelerometerAvailable] == YES) {
+    //     // Assign the update interval to the motion manager and start updates
+    //     [self.motionManager setAccelerometerUpdateInterval:kAccelerometerInterval/1000];  // expected in seconds
+    //     __weak CDVAccelerometer* weakSelf = self;
+    //     [self.motionManager startAccelerometerUpdatesToQueue:[NSOperationQueue mainQueue] withHandler:^(CMAccelerometerData *accelerometerData, NSError *error) {
+    //         x = accelerometerData.acceleration.x;
+    //         y = accelerometerData.acceleration.y;
+    //         z = accelerometerData.acceleration.z;
+    //         timestamp = ([[NSDate date] timeIntervalSince1970] * 1000);
+    //         [weakSelf returnAccelInfo];
+    //     }];
 
-        if (!self.isRunning) {
-            self.isRunning = YES;
-        }
-    }
-    
+    //     if (!self.isRunning) {
+    //         self.isRunning = YES;
+    //     }
+    // }
+
 }
 
 - (void)onReset
@@ -90,29 +89,25 @@
     [self stop:nil];
 }
 
-- (void)stop:(CDVInvokedUrlCommand*)command
-{
-    if ([self.motionManager isAccelerometerAvailable] == YES) {
-        if (self.haveReturnedResult == NO){
-            // block has not fired before stop was called, return whatever result we currently have
-            [self returnAccelInfo];
-        }
-        [self.motionManager stopAccelerometerUpdates];
+- (void)stop:(CDVInvokedUrlCommand*)command {
+    if (!self.beaconManager) {
+        [self stopRangingBeacons];
+    //     if (self.haveReturnedResult == NO){
+    //         // block has not fired before stop was called, return whatever result we currently have
+    //         [self returnAccelInfo];
+    //     }
+    //     [self.motionManager stopAccelerometerUpdates];
     }
+
     self.isRunning = NO;
 }
 
-- (void)returnAccelInfo
-{
-    // Create an acceleration object
-    NSMutableDictionary* accelProps = [NSMutableDictionary dictionaryWithCapacity:4];
+- (void)returnBeaconList {
+    NSMutableDictionary* beaconList = [NSMutableDictionary dictionaryWithCapacity:2];
+    [beaconList setValue:[NSNumber numberWithUnsignedInteger:[self.beaconsArray count]] forKey:@"count"];
+    [beaconList setValue:[NSArray arrayWithArray:self.beaconsArray] forKey:@"beacons"];
 
-    [accelProps setValue:[NSNumber numberWithDouble:x * kGravitationalConstant] forKey:@"x"];
-    [accelProps setValue:[NSNumber numberWithDouble:y * kGravitationalConstant] forKey:@"y"];
-    [accelProps setValue:[NSNumber numberWithDouble:z * kGravitationalConstant] forKey:@"z"];
-    [accelProps setValue:[NSNumber numberWithDouble:timestamp] forKey:@"timestamp"];
-
-    CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:accelProps];
+    CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:beaconList];
     [result setKeepCallback:[NSNumber numberWithBool:YES]];
     [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
     self.haveReturnedResult = YES;
@@ -135,4 +130,43 @@
 
 
  */
+
+-(void)startRangingBeacons {
+
+    if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusNotDetermined) {
+        [self.beaconManager requestAlwaysAuthorization];
+    }
+    else if([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusAuthorized) {
+        [self.beaconManager startRangingBeaconsInRegion:self.region];
+    }
+    else if([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusDenied) {
+        // FAILED to get authorization to follow location.
+    }
+    else if([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusRestricted) {
+        // FAILED to get authorization to follow location.
+    }
+}
+
+-(void)stopRangingBeacons {
+    [self.beaconManager stopRangingBeaconsInRegion:self.region];
+    [self.beaconManager stopEstimoteBeaconDiscovery];
+}
+
+ /*--- BEACON MANAGER DELEGATE FUNCTIONS */
+
+
+- (void)beaconManager:(ESTBeaconManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
+    [self startRangingBeacons];
+}
+
+- (void)beaconManager:(ESTBeaconManager *)manager didRangeBeacons:(NSArray *)beacons inRegion:(ESTBeaconRegion *)region {
+    self.beaconsArray = beacons;
+    // invoke callback if beacons changed
+}
+
+- (void)beaconManager:(ESTBeaconManager *)manager didDiscoverBeacons:(NSArray *)beacons inRegion:(ESTBeaconRegion *)region {
+    self.beaconsArray = beacons;
+    // invoke callback if beacons changed
+}
+
 @end
