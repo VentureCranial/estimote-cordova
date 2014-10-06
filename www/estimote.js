@@ -20,8 +20,9 @@
  * @constructor
  */
 var argscheck = require('cordova/argscheck'),
-    utils = require("cordova/utils"),
-    exec = require("cordova/exec");
+    utils = require('cordova/utils'),
+    exec = require('cordova/exec'),
+    EstimoteAPIResponse = require('./EstimoteAPIResponse');
 
 //  Is the API currently scanning?
 var scanning = false;
@@ -38,7 +39,7 @@ var reply = null;
 
 function startScanning(win, fail) {
     if (!scanning) {
-        exec(win, fail, "Estimote", "startRangingBeacons", []);
+        exec(win, fail, 'Estimote', 'startRangingBeacons', []);
     }
     scanning = true;
 }
@@ -46,7 +47,7 @@ function startScanning(win, fail) {
 function stopScanning() {
     // Tell tne Objective-C part to stop ranging beacons.
     if (scanning) {
-        exec(null, null, "Estimote", "stopRangingBeacons", []);
+        exec(null, null, 'Estimote', 'stopRangingBeacons', []);
     }
     scanning = false;
 }

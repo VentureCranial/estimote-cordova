@@ -31,6 +31,12 @@
         self.region = [[ESTBeaconRegion alloc] initWithProximityUUID:ESTIMOTE_PROXIMITY_UUID
                                                           identifier:@"EstimoteSampleRegion"];
         self.isScanning = NO;
+
+        if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusNotDetermined) {
+            NSLog(@"Requesting estimote beacon authorization.");
+            [self.beaconManager requestWhenInUseAuthorization];
+        }
+
     }
     return self;
 }
@@ -53,35 +59,23 @@
  *
  */
 
-- (void)startRangingBeacons:(CDVInvokedUrlCommand*)command {
+- (void)startRangingBeacons:(CDVInvokedUrlCommand *)command {
 
-    CDVPluginResult *pluginResult = nil;
-
-    self.haveReturnedResult = NO;
     self.callbackId = command.callbackId;
 
     if (self.beaconManager) {
 
         if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusNotDetermined) {
             NSLog(@"Requesting estimote beacon authorization.");
-            [self.beaconManager requestAlwaysAuthorization];
+            [self.beaconManager requestWhenInUseAuthorization];
         }
 
-        if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusAuthorized) {
-            NSLog(@"Authorization for beacon hunting — approved. Ranging begins.");
-            [self.beaconManager startRangingBeaconsInRegion:self.region];
-            self.isScanning = YES;
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-        } else if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusDenied) {
-            NSLog(@"Authorization for beacon hunting — denied.");
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Access to location services was not authorized."];
-        } else if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusRestricted) {
-            NSLog(@"Authorization for beacon hunting — restricted.");
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Access to location services was not authorized."];
-        }
+        NSLog(@"Ranging begins.");
+        [self.beaconManager startRangingBeaconsInRegion:self.region];
+        self.isScanning = YES;
+        [self sendNotificationCallback];
     }
 
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 
 }
 
@@ -106,7 +100,7 @@
     self.isScanning = NO;
 
     if (command != nil) {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }
 }
@@ -122,7 +116,7 @@
 - (void)sendNotificationCallback {
     NSMutableDictionary* beaconList = [NSMutableDictionary dictionaryWithCapacity:3];
     [beaconList setValue:[NSNumber numberWithUnsignedInteger:[self.beaconsArray count]] forKey:@"count"];
-    [beaconList setValue:[NSNumber numberWithUnsignedBoolean:self.isScanning] forKey:@"isScanning"];
+    [beaconList setValue:[NSNumber numberWithBool:self.isScanning] forKey:@"isScanning"];
     [beaconList setValue:[NSArray arrayWithArray:self.beaconsArray] forKey:@"beacons"];
 
     CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:beaconList];
@@ -148,8 +142,9 @@
 - (void)beaconManager:(ESTBeaconManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
     if (status == kCLAuthorizationStatusAuthorized) {
         NSLog(@"Authorization for beacon hunting — approved. Ranging begins.");
-        self.isScanning = YES;
-        [self.beaconManager startRangingBeaconsInRegion:self.region];
+        if (self.isScanning) {
+            [self.beaconManager startRangingBeaconsInRegion:self.region];
+        }
     }
 }
 

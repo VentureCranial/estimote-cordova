@@ -30,6 +30,9 @@
     <js-module src="www/estimote.js" name="Estimote">
         <clobbers target="Estimote" />
     </js-module>
+    <js-module src="www/EstimoteAPIResponse.js" name="EstimoteAPIResponse">
+        <clobbers target="EstimoteAPIResponse" />
+    </js-module>
 
     <!-- ios -->
     <platform name="ios">
