@@ -19,141 +19,127 @@
 
 @implementation CDVEstimote
 
-@synthesize callbackId, isRunning;
+@synthesize callbackId, isScanning;
 
 
-- (CDVEstimote *)initWithWebView:(UIWebView*)theWebView {
-    self = (CDVEstimote*)[super initWithWebView:(UIWebView*)theWebView];
+- (CDVEstimote *)initWithWebView:(UIWebView *)theWebView {
+    self = (CDVEstimote *)[super initWithWebView:(UIWebView *)theWebView];
     if (self) {
-
         self.callbackId = nil;
-
         self.beaconManager = [[ESTBeaconManager alloc] init];
         self.beaconManager.delegate = self;
         self.region = [[ESTBeaconRegion alloc] initWithProximityUUID:ESTIMOTE_PROXIMITY_UUID
-                                              identifier:@"EstimoteSampleRegion"];
-
-        self.isRunning = NO;
-        self.haveReturnedResult = NO;
+                                                          identifier:@"EstimoteSampleRegion"];
+        self.isScanning = NO;
     }
     return self;
 }
 
 - (void)dealloc {
-    [self stop:nil];
+    [self stopRangingBeacons:nil];
     self.beaconManager.delegate = nil;
     self.region = nil;
-    self.haveReturnedResult = YES;
-    self.isRunning = NO;
+    self.isScanning = NO;
     self.callbackId = nil;
     self.beaconManager = nil;
 }
 
-- (void)start:(CDVInvokedUrlCommand*)command {
+/*
+ * Start
+ *
+ * Called when the system should begin looking for beacons. The
+ * callback function will be called when the list of beacons
+ * updates.
+ *
+ */
+
+- (void)startRangingBeacons:(CDVInvokedUrlCommand*)command {
+
+    CDVPluginResult *pluginResult = nil;
 
     self.haveReturnedResult = NO;
     self.callbackId = command.callbackId;
 
     if (self.beaconManager) {
-        NSLog(@"Requesting estimote beacon authorization.");
-        [self.beaconManager requestAlwaysAuthorization];
-        [self startRangingBeacons];
-        self.isRunning = YES;
+
+        if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusNotDetermined) {
+            NSLog(@"Requesting estimote beacon authorization.");
+            [self.beaconManager requestAlwaysAuthorization];
+        }
+
+        if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusAuthorized) {
+            NSLog(@"Authorization for beacon hunting — approved. Ranging begins.");
+            [self.beaconManager startRangingBeaconsInRegion:self.region];
+            self.isScanning = YES;
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        } else if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusDenied) {
+            NSLog(@"Authorization for beacon hunting — denied.");
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Access to location services was not authorized."];
+        } else if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusRestricted) {
+            NSLog(@"Authorization for beacon hunting — restricted.");
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Access to location services was not authorized."];
+        }
     }
 
-    // if ([self.motionManager isAccelerometerAvailable] == YES) {
-    //     // Assign the update interval to the motion manager and start updates
-    //     [self.motionManager setAccelerometerUpdateInterval:kAccelerometerInterval/1000];  // expected in seconds
-    //     __weak CDVAccelerometer* weakSelf = self;
-    //     [self.motionManager startAccelerometerUpdatesToQueue:[NSOperationQueue mainQueue] withHandler:^(CMAccelerometerData *accelerometerData, NSError *error) {
-    //         x = accelerometerData.acceleration.x;
-    //         y = accelerometerData.acceleration.y;
-    //         z = accelerometerData.acceleration.z;
-    //         timestamp = ([[NSDate date] timeIntervalSince1970] * 1000);
-    //         [weakSelf returnAccelInfo];
-    //     }];
-
-    //     if (!self.isRunning) {
-    //         self.isRunning = YES;
-    //     }
-    // }
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 
 }
 
-- (void)onReset
-{
-    [self stop:nil];
+
+- (void)onReset {
+    [self stopRangingBeacons:nil];
 }
 
-- (void)stop:(CDVInvokedUrlCommand*)command {
+/*
+ * Stop
+ *
+ * Called when the system should discontinue the process of
+ * looking for nearby beacons.
+ *
+ */
+
+- (void)stopRangingBeacons:(CDVInvokedUrlCommand*)command {
     if (self.beaconManager) {
-        [self stopRangingBeacons];
-    //     if (self.haveReturnedResult == NO){
-    //         // block has not fired before stop was called, return whatever result we currently have
-    //         [self returnAccelInfo];
-    //     }
-    //     [self.motionManager stopAccelerometerUpdates];
+        [self.beaconManager stopRangingBeaconsInRegion:self.region];
     }
 
-    self.isRunning = NO;
+    self.isScanning = NO;
+
+    if (command != nil) {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }
 }
 
-- (void)returnBeaconList {
-    NSMutableDictionary* beaconList = [NSMutableDictionary dictionaryWithCapacity:2];
+/*
+ * sendNotificationCallback
+ *
+ * Called by the plugin when it finds beacons and needs to alert the
+ * JavaScript side via a callback.
+ *
+ */
+
+- (void)sendNotificationCallback {
+    NSMutableDictionary* beaconList = [NSMutableDictionary dictionaryWithCapacity:3];
     [beaconList setValue:[NSNumber numberWithUnsignedInteger:[self.beaconsArray count]] forKey:@"count"];
+    [beaconList setValue:[NSNumber numberWithUnsignedBoolean:self.isScanning] forKey:@"isScanning"];
     [beaconList setValue:[NSArray arrayWithArray:self.beaconsArray] forKey:@"beacons"];
 
     CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:beaconList];
     [result setKeepCallback:[NSNumber numberWithBool:YES]];
     [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
-    self.haveReturnedResult = YES;
 }
-
-// TODO: Consider using filtering to isolate instantaneous data vs. gravity data -jm
 
 /*
- #define kFilteringFactor 0.1
-
- // Use a basic low-pass filter to keep only the gravity component of each axis.
- grav_accelX = (acceleration.x * kFilteringFactor) + ( grav_accelX * (1.0 - kFilteringFactor));
- grav_accelY = (acceleration.y * kFilteringFactor) + ( grav_accelY * (1.0 - kFilteringFactor));
- grav_accelZ = (acceleration.z * kFilteringFactor) + ( grav_accelZ * (1.0 - kFilteringFactor));
-
- // Subtract the low-pass value from the current value to get a simplified high-pass filter
- instant_accelX = acceleration.x - ( (acceleration.x * kFilteringFactor) + (instant_accelX * (1.0 - kFilteringFactor)) );
- instant_accelY = acceleration.y - ( (acceleration.y * kFilteringFactor) + (instant_accelY * (1.0 - kFilteringFactor)) );
- instant_accelZ = acceleration.z - ( (acceleration.z * kFilteringFactor) + (instant_accelZ * (1.0 - kFilteringFactor)) );
-
-
+ * beaconsWereLocated
+ *
+ * Called by the delegate methods when the EstimoteSDK finds beacons.
+ * This function also determines if we need to notify the callback.
+ *
  */
 
--(void)startRangingBeacons {
-
-    NSLog(@"Starting to Range Beacons");
-    if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusNotDetermined) {
-        NSLog(@"Requesting authorization");
-        [self.beaconManager requestAlwaysAuthorization];
-    }
-    else if([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusAuthorized) {
-        NSLog(@"Starting startRangingBeaconsinRegion");
-
-        [self.beaconManager startRangingBeaconsInRegion:self.region];
-    }
-    else if([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusDenied) {
-        // FAILED to get authorization to follow location.
-                NSLog(@"Authorization denied");
-
-    }
-    else if([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusRestricted) {
-        // FAILED to get authorization to follow location.
-                NSLog(@"Authorization restricted");
-
-    }
-}
-
--(void)stopRangingBeacons {
-    [self.beaconManager stopRangingBeaconsInRegion:self.region];
-    [self.beaconManager stopEstimoteBeaconDiscovery];
+- (void)beaconsWereLocated {
+    [self sendNotificationCallback];
 }
 
  /*--- BEACON MANAGER DELEGATE FUNCTIONS */
@@ -161,23 +147,22 @@
 
 - (void)beaconManager:(ESTBeaconManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
     if (status == kCLAuthorizationStatusAuthorized) {
-        NSLog(@"Authorization status changed, starting to range beacons");
-        [self startRangingBeacons];
+        NSLog(@"Authorization for beacon hunting — approved. Ranging begins.");
+        self.isScanning = YES;
+        [self.beaconManager startRangingBeaconsInRegion:self.region];
     }
 }
 
 - (void)beaconManager:(ESTBeaconManager *)manager didRangeBeacons:(NSArray *)beacons inRegion:(ESTBeaconRegion *)region {
     self.beaconsArray = beacons;
-    NSLog(@"Updating becons array response");
-    [self returnBeaconList];
-    // invoke callback if beacons changed
+    NSLog(@"Beacons ranged - calling beaconsWereLocated.");
+    [self beaconsWereLocated];
 }
 
 - (void)beaconManager:(ESTBeaconManager *)manager didDiscoverBeacons:(NSArray *)beacons inRegion:(ESTBeaconRegion *)region {
     self.beaconsArray = beacons;
-    NSLog(@"Updating becons array response");
-    [self returnBeaconList];
-   // invoke callback if beacons changed
+    NSLog(@"Beacons discovered - calling beaconsWereLocated.");
+    [self beaconsWereLocated];
 }
 
 @end

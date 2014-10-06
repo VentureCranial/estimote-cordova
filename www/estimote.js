@@ -23,8 +23,8 @@ var argscheck = require('cordova/argscheck'),
     utils = require("cordova/utils"),
     exec = require("cordova/exec");
 
-//  Is the API currently running?
-var running = false;
+//  Is the API currently scanning?
+var scanning = false;
 
 // Keeps reference to startRangingBeacons calls.
 var timers = {};
@@ -35,28 +35,22 @@ var listeners = [];
 // Last reply from native
 var reply = null;
 
-// Tells native to start.
-function start() {
-    exec(function(a) {
-        var tempListeners = listeners.slice(0);
-        reply = new EstimoteAPI(a.count, a.beaconList);
-        for (var i = 0, l = tempListeners.length; i < l; i++) {
-            tempListeners[i].win(reply);
-        }
-    }, function(e) {
-        var tempListeners = listeners.slice(0);
-        for (var i = 0, l = tempListeners.length; i < l; i++) {
-            tempListeners[i].fail(e);
-        }
-    }, "Estimote", "start", []);
-    running = true;
+
+function startScanning(win, fail) {
+    if (!scanning) {
+        exec(win, fail, "Estimote", "startRangingBeacons", []);
+    }
+    scanning = true;
 }
 
-// Tells native to stop.
-function stop() {
-    exec(null, null, "Estimote", "stop", []);
-    running = false;
+function stopScanning() {
+    // Tell tne Objective-C part to stop ranging beacons.
+    if (scanning) {
+        exec(null, null, "Estimote", "stopRangingBeacons", []);
+    }
+    scanning = false;
 }
+
 
 // Adds a callback pair to the listeners array
 function createCallbackPair(win, fail) {
@@ -68,98 +62,61 @@ function removeListeners(l) {
     var idx = listeners.indexOf(l);
     if (idx > -1) {
         listeners.splice(idx, 1);
-        if (listeners.length === 0) {
-            stop();
-        }
+    }
+
+    if (listeners.length === 0) {
+        stopScanning();
     }
 }
 
 var EstimoteAPI = {
-    /**
-     * Asynchronously scan for Estimote beacons.
-     *
-     * @param {Function} successCallback    The function to call when the beacon list is available
-     * @param {Function} errorCallback      The function to call when there is an error getting the beacon list. (OPTIONAL)
-     * @param {EstimoteOptions} options     The options for EstimoteAPI calls. (OPTIONAL)
-     */
-
-    rangeAllBeacons: function(successCallback, errorCallback, options) {
-        argscheck.checkArgs('fFO', 'estimote.rangeAllBeacons', arguments);
-
-        var p;
-        var win = function(a) {
-            removeListeners(p);
-            successCallback(a);
-        };
-        var fail = function(e) {
-            removeListeners(p);
-            errorCallback && errorCallback(e);
-        };
-
-        p = createCallbackPair(win, fail);
-        listeners.push(p);
-
-        if (!running) {
-            start();
-        }
-    },
 
     /**
-     * Asynchronously watches for beacons to enter range.
+     * Asynchronously begin scanning for beacons in range.
      *
      * @param {Function} successCallback    The function to call each time beacon list updates
      * @param {Function} errorCallback      The function to call when there is an error getting beacon list. (OPTIONAL)
-     * @param {EstimoteOptions} options     The options for EstimoteAPI calls. (OPTIONAL)
-     * @return String                       The watch id that must be passed to #clearWatch to stop watching.
      */
     startRangingBeacons: function(successCallback, errorCallback, options) {
+
         argscheck.checkArgs('fFO', 'estimote.startRangingBeacons', arguments);
-        // Default interval (10 sec)
-        var frequency = (options && options.frequency && typeof options.frequency == 'number') ? options.frequency : 10000;
 
-        // Keep reference to watch id, and report readings as often as defined in frequency
-        var id = utils.createUUID();
-
-        var p = createCallbackPair(function(){}, function(e) {
-            removeListeners(p);
-            errorCallback && errorCallback(e);
-        });
-        listeners.push(p);
-
-        timers[id] = {
-            timer:window.setInterval(function() {
-                if (reply) {
-                    successCallback(reply);
-                }
-            }, frequency),
-            listeners:p
+        // Build our two callback functions for our listener
+        var win = function(a) {
+            successCallback(reply);
         };
 
-        if (running) {
-            // If we're already running then immediately invoke the success callback
-            // but only if we have retrieved a value, sample code does not check for null ...
-            if (reply) {
-                successCallback(reply);
-            }
-        } else {
-            start();
-        }
+        var fail = function(e) {
+            errorCallback && errorCallback(e);
+        };
 
-        return id;
+        // Add the listsner functions to our list
+        listeners.push(createCallbackPair(win, fail));
+
+        // If we are not currently scanning, start the scanner and let
+        // 'er rip.
+        startScanning(
+            function(a) {
+                reply = new EstimoteAPIResponse(a.isScanning, a.count, a.beaconList);
+                for (var i = 0, l = listeners.length; i < l; i++) {
+                    listeners[i].win(reply);
+                }
+            },
+
+            function(e) {
+                for (var i = 0, l = listeners.length; i < l; i++) {
+                    listeners[i].fail(e);
+                }
+            });
     },
 
     /**
      * Stops ranging beacons.
      *
-     * @param {String} id       The id of the watch returned from #startRangingBeacons.
      */
-    stopRangingBeacons: function(id) {
-        // Stop javascript timer & remove from timer list
-        if (id && timers[id]) {
-            window.clearInterval(timers[id].timer);
-            removeListeners(timers[id].listeners);
-            delete timers[id];
-        }
+    stopRangingBeacons: function(successCallback, errorCallback, options) {
+        removeListeners(null);
+        stopScanning();
     }
 };
 

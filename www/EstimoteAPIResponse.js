@@ -14,9 +14,10 @@
   limitations under the License.
 */
 
-// var EstimoteAPI = function(count, beaconList) {
-//     this.count = count;
-//     this.beaconList = beaconList;
-// };
+var EstimoteAPIResponse = function(isScanning, count, beaconList) {
+    this.isScanning = isScanning;
+    this.count = count;
+    this.beaconList = beaconList;
+};
 
-// module.exports = EstimoteAPI;
+module.exports = EstimoteAPIResponse;

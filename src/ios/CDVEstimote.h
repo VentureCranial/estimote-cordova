@@ -20,18 +20,21 @@
 @interface CDVEstimote : CDVPlugin <ESTBeaconManagerDelegate> {
 }
 
-@property (readwrite, assign) BOOL isRunning;
+@property (readwrite, assign) BOOL isScanning;
 @property (nonatomic, strong) NSString* callbackId;
 
-@property (readwrite, assign) BOOL haveReturnedResult;
-@property (readwrite, strong) ESTBeaconManager* beaconManager;
+@property (readwrite, strong) ESTBeaconManager *beaconManager;
 @property (readwrite, strong) ESTBeaconRegion *region;
 @property (readwrite, strong) NSArray *beaconsArray;
 
-- (CDVEstimote *)init;
-- (CDVPlugin*)initWithWebView:(UIWebView*)theWebView;
+- (CDVPlugin *)initWithWebView:(UIWebView *)theWebView;
+- (void)onReset;
 
-- (void)start:(CDVInvokedUrlCommand*)command;
-- (void)stop:(CDVInvokedUrlCommand*)command;
+- (void)sendNotificationCallback;
+- (void)beaconsWereLocated;
+
+
+- (void)startRangingBeacons:(CDVInvokedUrlCommand *)command;
+- (void)stopRangingBeacons:(CDVInvokedUrlCommand *)command;
 
 @end
