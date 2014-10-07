@@ -98,7 +98,7 @@ var EstimoteAPI = {
         // 'er rip.
         startScanning(
             function(a) {
-                reply = new EstimoteAPIResponse(a.isScanning, a.count, a.beaconList);
+                reply = new EstimoteAPIResponse(a.isScanning, a.count, a.beacons);
                 for (var i = 0, l = listeners.length; i < l; i++) {
                     listeners[i].win(reply);
                 }

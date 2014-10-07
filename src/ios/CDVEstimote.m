@@ -114,12 +114,24 @@
  */
 
 - (void)sendNotificationCallback {
-    NSMutableDictionary* beaconList = [NSMutableDictionary dictionaryWithCapacity:3];
+
+    NSMutableDictionary *beaconList = [NSMutableDictionary dictionaryWithCapacity:3];
     [beaconList setValue:[NSNumber numberWithUnsignedInteger:[self.beaconsArray count]] forKey:@"count"];
     [beaconList setValue:[NSNumber numberWithBool:self.isScanning] forKey:@"isScanning"];
-    [beaconList setValue:[NSArray arrayWithArray:self.beaconsArray] forKey:@"beacons"];
 
-    CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:beaconList];
+    NSMutableArray *beacons = [NSMutableArray arrayWithCapacity:[self.beaconsArray count]];
+    for(ESTBeacon *i in self.beaconsArray) {
+        NSMutableDictionary *beacon = [NSMutableDictionary dictionaryWithCapacity:4];
+        // [beacon setValue:i.name forKey:@"name"];
+        [beacon setValue:[NSNumber numberWithInteger:i.color] forKey:@"color"];
+        [beacon setValue:i.major forKey:@"major"];
+        [beacon setValue:i.minor forKey:@"minor"];
+        [beacons addObject:beacon];
+    }
+
+    [beaconList setValue:[NSArray arrayWithArray:beacons] forKey:@"beacons"];
+
+    CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:beaconList];
     [result setKeepCallback:[NSNumber numberWithBool:YES]];
     [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
 }
