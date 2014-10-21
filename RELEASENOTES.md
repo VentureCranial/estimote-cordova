@@ -15,5 +15,5 @@
 -->
 # Release Notes
 
-### 0.0.1 (Sept 25, 2014)
+### 0.0.1 (October 20, 2014)
 * Initial version
