@@ -37,9 +37,9 @@ var listeners = [];
 var reply = null;
 
 
-function startScanning(win, fail) {
+function startScanning(win, fail, interval) {
     if (!scanning) {
-        exec(win, fail, 'Estimote', 'startRangingBeacons', []);
+        exec(win, fail, 'Estimote', 'startRangingBeacons', [interval]);
     }
     scanning = true;
 }
@@ -94,6 +94,11 @@ var EstimoteAPI = {
         // Add the listsner functions to our list
         listeners.push(createCallbackPair(win, fail));
 
+        var interval = 10;
+        if (options && options.interval) {
+            interval = options.interval;
+        }
+
         // If we are not currently scanning, start the scanner and let
         // 'er rip.
         startScanning(
@@ -108,7 +113,9 @@ var EstimoteAPI = {
                 for (var i = 0, l = listeners.length; i < l; i++) {
                     listeners[i].fail(e);
                 }
-            });
+            }, 
+
+            interval);
     },
 
     /**
