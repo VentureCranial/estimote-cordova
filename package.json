@@ -1,0 +1,22 @@
+{
+    "version": "0.0.1",
+    "name": "com.venturecranial.cordova.estimote",
+    "cordova_name": "Estimote iOS SDK",
+    "description": "Estimote Core-Location API",
+    "license": "MIT License",
+    "repo": "https://github.com/VentureCranial/estimote-cordova.git",
+    "issue": "https://github.com/VentureCranial/estimote-cordova/issues",
+    "keywords": [
+        "cordova",
+        "device",
+        "motion",
+    	"beacon",
+    	"estimote",
+        "ibeacon"
+    ],
+    "platforms": [
+        "ios",
+    ],
+    "engines": [],
+    "englishdoc": "<!---\n english doc -->"
+}

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Copyright 2014 Venture Cranial, LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+-->
+
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+           id="com.venturecranial.cordova.estimote"
+      version="0.0.1">
+
+    <name>Estimote SDK</name>
+    <description>Cordova Estimote SDK Plugin</description>
+    <license>MIT</license>
+    <keywords>cordova,device,motion,estimote,beacon,ibeacon</keywords>
+    <repo>https://github.com/VentureCranial/estimote-cordova.git</repo>
+    <issue>https://github.com/VentureCranial/estimote-cordova/issues</issue>
+
+    <js-module src="www/estimote.js" name="Estimote">
+        <clobbers target="Estimote" />
+    </js-module>
+    <js-module src="www/EstimoteAPIResponse.js" name="EstimoteAPIResponse">
+        <clobbers target="EstimoteAPIResponse" />
+    </js-module>
+
+    <!-- ios -->
+    <platform name="ios">
+
+        <config-file target="config.xml" parent="/*">
+            <feature name="Estimote">
+                <param name="ios-package" value="CDVEstimote"/>
+            </feature>
+        </config-file>
+
+        <config-file target="*-Info.plist" parent="NSLocationAlwaysUsageDescription">
+            <string></string>
+        </config-file>
+
+        <header-file src="src/ios/CDVEstimote.h" />
+        <header-file src="src/ios/EstimoteSDK/Headers/ESTBeacon.h" />
+        <header-file src="src/ios/EstimoteSDK/Headers/ESTBeaconDefinitions.h" />
+        <header-file src="src/ios/EstimoteSDK/Headers/ESTBeaconFirmwareInfoVO.h" />
+        <header-file src="src/ios/EstimoteSDK/Headers/ESTBeaconFirmwareVO.h" />
+        <header-file src="src/ios/EstimoteSDK/Headers/ESTBeaconManager.h" />
+        <header-file src="src/ios/EstimoteSDK/Headers/ESTBeaconRegion.h" />
+        <header-file src="src/ios/EstimoteSDK/Headers/ESTBeaconVO.h" />
+
+        <source-file src="src/ios/CDVEstimote.m" />
+
+        <source-file src="src/ios/EstimoteSDK/libEstimoteSDK.a" framework="true" />
+    </platform>
+</plugin>
