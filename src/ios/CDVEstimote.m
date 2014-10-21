@@ -19,12 +19,15 @@
 
 @implementation CDVEstimote
 
-@synthesize callbackId, isScanning;
+@synthesize callbackId, isScanning, callbackInterval,
+            nextNotificationAfterTimeInterval;
 
 
 - (CDVEstimote *)initWithWebView:(UIWebView *)theWebView {
     self = (CDVEstimote *)[super initWithWebView:(UIWebView *)theWebView];
     if (self) {
+        self.callbackInterval = 0;
+        self.nextNotificationAfterTimeInterval = [[NSDate date] timeIntervalSince1970];
         self.callbackId = nil;
         self.beaconManager = [[ESTBeaconManager alloc] init];
         self.beaconManager.delegate = self;
@@ -55,13 +58,23 @@
  *
  * Called when the system should begin looking for beacons. The
  * callback function will be called when the list of beacons
- * updates.
+ * updates. The first paramter is an optional minimum interval value,
+ * which will keep the ranging process from executing the callback
+ * before that number of seconds has passed.
  *
  */
 
 - (void)startRangingBeacons:(CDVInvokedUrlCommand *)command {
 
     self.callbackId = command.callbackId;
+
+    NSString *interval = [command argumentAtIndex:0];
+
+    if (interval) {
+        self.callbackInterval = [interval integerValue];
+    } else {
+        self.callbackInterval = 10;
+    }
 
     if (self.beaconManager) {
 
@@ -115,26 +128,38 @@
 
 - (void)sendNotificationCallback {
 
+    NSTimeInterval now = [[NSDate date] timeIntervalSince1970];
+
+    if (now <= self.nextNotificationAfterTimeInterval) {
+        return;
+    }
+
+    self.nextNotificationAfterTimeInterval = now + self.callbackInterval;
+
     NSMutableDictionary *beaconList = [NSMutableDictionary dictionaryWithCapacity:3];
     [beaconList setValue:[NSNumber numberWithUnsignedInteger:[self.beaconsArray count]] forKey:@"count"];
     [beaconList setValue:[NSNumber numberWithBool:self.isScanning] forKey:@"isScanning"];
 
     NSMutableArray *beacons = [NSMutableArray arrayWithCapacity:[self.beaconsArray count]];
     for(ESTBeacon *i in self.beaconsArray) {
-        NSMutableDictionary *beacon = [NSMutableDictionary dictionaryWithCapacity:4];
+        NSMutableDictionary *beacon = [NSMutableDictionary dictionaryWithCapacity:6];
         // [beacon setValue:i.name forKey:@"name"];
         [beacon setValue:[NSNumber numberWithInteger:i.color] forKey:@"color"];
         [beacon setValue:i.major forKey:@"major"];
         [beacon setValue:i.minor forKey:@"minor"];
+        [beacon setValue:i.distance forKey:@"distance"];
+        [beacon setValue:i.macAddress forKey:@"mac"];
+        [beacon setValue:[NSNumber numberWithInteger:i.rssi] forKey:@"rssi"];
         [beacons addObject:beacon];
     }
 
     [beaconList setValue:[NSArray arrayWithArray:beacons] forKey:@"beacons"];
 
-    CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:beaconList];
+    CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:beaconList];
     [result setKeepCallback:[NSNumber numberWithBool:YES]];
     [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
 }
+
 
 /*
  * beaconsWereLocated

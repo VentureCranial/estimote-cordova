@@ -21,6 +21,8 @@
 }
 
 @property (readwrite, assign) BOOL isScanning;
+@property (readwrite, assign) NSInteger callbackInterval;
+@property (readwrite, assign) NSInteger nextNotificationAfterTimeInterval;
 @property (nonatomic, strong) NSString* callbackId;
 
 @property (readwrite, strong) ESTBeaconManager *beaconManager;
