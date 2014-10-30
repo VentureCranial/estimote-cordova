@@ -27,7 +27,7 @@
     self = (CDVEstimote *)[super initWithWebView:(UIWebView *)theWebView];
     if (self) {
         self.callbackInterval = 0;
-        self.nextNotificationAfterTimeInterval = [[NSDate date] timeIntervalSince1970];
+        self.nextNotificationAfterTimeInterval = 0;
         self.callbackId = nil;
         self.beaconManager = [[ESTBeaconManager alloc] init];
         self.beaconManager.delegate = self;
@@ -76,6 +76,9 @@
         self.callbackInterval = 10;
     }
 
+    // Force the first interval to run immediately
+    self.nextNotificationAfterTimeInterval = 0;
+
     if (self.beaconManager) {
 
         if ([ESTBeaconManager authorizationStatus] == kCLAuthorizationStatusNotDetermined) {
@@ -83,7 +86,7 @@
             [self.beaconManager requestWhenInUseAuthorization];
         }
 
-        NSLog(@"Ranging begins.");
+        // NSLog(@"Ranging begins.");
         [self.beaconManager startRangingBeaconsInRegion:self.region];
         self.isScanning = YES;
         [self sendNotificationCallback];
@@ -187,13 +190,13 @@
 
 - (void)beaconManager:(ESTBeaconManager *)manager didRangeBeacons:(NSArray *)beacons inRegion:(ESTBeaconRegion *)region {
     self.beaconsArray = beacons;
-    NSLog(@"Beacons ranged - calling beaconsWereLocated.");
+    // NSLog(@"Beacons ranged - calling beaconsWereLocated.");
     [self beaconsWereLocated];
 }
 
 - (void)beaconManager:(ESTBeaconManager *)manager didDiscoverBeacons:(NSArray *)beacons inRegion:(ESTBeaconRegion *)region {
     self.beaconsArray = beacons;
-    NSLog(@"Beacons discovered - calling beaconsWereLocated.");
+    // NSLog(@"Beacons discovered - calling beaconsWereLocated.");
     [self beaconsWereLocated];
 }
 
